@@ -1,5 +1,5 @@
 import React, {Component} from "react"
-import {StyleSheet, Text, View} from "react-native"
+import {StyleSheet, Text, View,Button} from "react-native"
 import {createMaterialTopTabNavigator} from "react-navigation-tabs";
 import {createAppContainer} from "react-navigation";
 import NavigationUtil from "../navigator/NavigationUtil";
@@ -52,8 +52,31 @@ class PopularTab extends Component {
       <View>
         <Text>PopularPage</Text>
         <Text onPress={()=>{
-          NavigationUtil.goPage({},"DetailPage")
+          NavigationUtil.goPage({
+            navigation:this.props.navigation
+          },"DetailPage")
         }}>跳转到详情页</Text>
+        <Button
+          title={"Fetch 使用"}
+          onPress={()=>{
+          NavigationUtil.goPage({
+            navigation:this.props.navigation
+          },"FetchDemoPage")
+        }}/>
+        <Button
+          title={"AsyncStorageDemoPage 使用"}
+          onPress={()=>{
+            NavigationUtil.goPage({
+              navigation:this.props.navigation
+            },"AsyncStorageDemoPage")
+          }}/>
+        <Button
+          title={"离线缓存框架"}
+          onPress={()=>{
+            NavigationUtil.goPage({
+              navigation:this.props.navigation
+            },"DataStorageDemoPage")
+          }}/>
       </View>
     )
   }
