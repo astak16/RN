@@ -8,6 +8,7 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {createBottomTabNavigator,BottomTabBar} from "react-navigation-tabs";
 import {createAppContainer} from "react-navigation";
+import {connect} from "react-redux"
 
 const TABS = {
   PopularPage: {
@@ -48,18 +49,20 @@ const TABS = {
   }
 }
 
-export default class DynamicTabNavigator extends React.Component {
+class DynamicTabNavigator extends React.Component {
   constructor(props) {
     super(props);
     console.disableYellowBox = true //关闭黄色警告框
   }
   
   _tabNavigator() {
+    if(this.Tabs) return this.Tabs
+    
     const {PopularPage, TrendingPage, FavoritePage, MyPage} = TABS
     const tabs = {PopularPage, TrendingPage, FavoritePage, MyPage}
     PopularPage.navigationOptions.tabBarLabel = '最热1'
-    return createAppContainer(createBottomTabNavigator(tabs, {
-      tabBarComponent:TabBarComponent
+    return this.Tabs = createAppContainer(createBottomTabNavigator(tabs, {
+      tabBarComponent:props => {return <TabBarComponent theme={this.props.theme} {...props} />}
     }))
   }
   
@@ -71,26 +74,15 @@ export default class DynamicTabNavigator extends React.Component {
 }
 
 class TabBarComponent extends React.Component {
-  constructor(props) {
-    super(props)
-    this.theme = {
-      tintColor: props.activeTintColor,
-      updateTime: new Date().getTime()
-    }
-  }
-  
   render() {
-    const {routes, index} = this.props.navigation.state
-    if (routes[index].params) {
-      const {theme} = routes[index].params
-      // 以最新的更新时间为主，防止被其他 tab 之前的修改覆盖掉
-      if (theme && theme.updateTime > this.theme.updateTime) {
-        this.theme = theme
-      }
-    }
     return <BottomTabBar
       {...this.props}
-      activeTintColor={this.theme.tintColor || this.props.activeTintColor}
+      activeTintColor={this.props.theme}
     />
   }
 }
+
+const mapStateToProps = state => ({
+  theme:state.theme.theme
+})
+export default connect(mapStateToProps)(DynamicTabNavigator)
