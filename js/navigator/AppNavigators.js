@@ -5,6 +5,7 @@ import HomePage from "../page/HomePage";
 import DetailPage from "../page/DetailGage";
 import FetchDemoPage from "../page/FetchDemoPage";
 import AsyncStorageDemoPage from "../page/AsyncStorageDemoPage";
+import DataStorageDemoPage from "../page/DataStoreDemoPage";
 
 const InitNavigator = createStackNavigator({
   WelcomePage: {

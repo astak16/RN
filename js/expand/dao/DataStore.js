@@ -1,4 +1,4 @@
-import {AsyncStore} from "react-native"
+import {AsyncStorage} from "react-native"
 
 export default class DataStore {
   /**
@@ -8,19 +8,20 @@ export default class DataStore {
    */
   fetchData(url) {
     return new Promise((resolve, reject) => {
-      this.fetchData(url)
-        .then(wrapData => {
-          if (wrapData && DataStore.checkTimestampValid(wrapData.timestamp)) {
-            resolve(wrapData)
-          } else {
-            this.fetchData(url).then(data => {
-              resolve(this._wrapData(data))
-            }).catch(error => {
-              reject(error)
-            })
-          }
-        }).catch(error => {
-        this.fetchData(url).then(data => {
+      this.fetchLocalData(url).then(wrapData => {
+        console.log('data')
+        console.log(wrapData)
+        if (wrapData && DataStore.checkTimestampValid(wrapData.timestamp)) {
+          resolve(wrapData)
+        } else {
+          this.fetchNetData(url).then(data => {
+            resolve(this._wrapData(data))
+          }).catch(error => {
+            reject(error)
+          })
+        }
+      }).catch(error => {
+        this.fetchNetData(url).then(data => {
           resolve(this._wrapData(data))
         }).catch(error => {
           reject(error)
@@ -37,7 +38,7 @@ export default class DataStore {
    */
   saveData(url, data, callback) {
     if (!data || !url) return
-    AsyncStore.setItem(url, JSON.stringify(this._wrapData(data)), callback)
+    AsyncStorage.setItem(url, JSON.stringify(this._wrapData(data)), callback)
   }
   
   /**
@@ -47,7 +48,7 @@ export default class DataStore {
    */
   fetchLocalData(url) {
     return new Promise((resolve, reject) => {
-      AsyncStore.getItem(url, (error, result) => {
+      AsyncStorage.getItem(url, (error, result) => {
         if (!error) {
           try {
             resolve(JSON.parse(result))
@@ -88,7 +89,7 @@ export default class DataStore {
   }
   
   _wrapData(data) {
-    return {data: data, timestamp: new Date().getTime}
+    return {data, timestamp: new Date().getTime}
   }
   
   /**
