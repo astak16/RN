@@ -1,15 +1,17 @@
 import React, {Component} from "react"
-import {StyleSheet, Text, View, FlatList, RefreshControl} from "react-native"
+import Toast from "react-native-easy-toast"
+import {StyleSheet, Text, ActivityIndicator, View, FlatList, RefreshControl} from "react-native"
 import {createMaterialTopTabNavigator} from "react-navigation-tabs";
 import {createAppContainer} from "react-navigation";
 import {connect} from "react-redux"
 import actions from "../action/index"
 import PopularItem from "../common/PopularItem";
+import NavigationBar from "../common/NavigationBar";
 import NavigationUtil from "../navigator/NavigationUtil";
 
 const URL = "https://api.github.com/search/repositories?q="
 const QUERY_STR = "&sort=stars"
-const THEME_COLOR = "red"
+const THEME_COLOR = "#678"
 type Props = {}
 
 export default class PopularPage extends Component<Props> {
@@ -32,6 +34,15 @@ export default class PopularPage extends Component<Props> {
   }
   
   render() {
+    let statusBar = {
+      backgroundColor: THEME_COLOR,
+      barStyle: "light-content"
+    }
+    let navigatorBar = <NavigationBar
+      title={'最热'}
+      statusBar={statusBar}
+      style={{backgroundColor:THEME_COLOR}}
+    />
     const TabNavigation = createAppContainer(createMaterialTopTabNavigator(
       this._genTabs(), {
         tabBarOptions: {
@@ -48,12 +59,14 @@ export default class PopularPage extends Component<Props> {
     ))
     return (
       <View style={styles.container}>
+        {navigatorBar}
         <TabNavigation/>
       </View>
     )
   }
 }
 
+const pageSize = 10 // 设置常量，防止修改
 class PopularTab extends Component<Props> {
   constructor(props) {
     super(props);
@@ -65,12 +78,36 @@ class PopularTab extends Component<Props> {
     this.loadData()
   }
   
-  loadData() {
-    const {onLoadPopularData} = this.props
+  loadData(loadMore) {
+    const {onRefreshPopular, onLoadMorePopular} = this.props
+    const store = this._store()
     const url = this.getFetchUrl(this.storeName)
-    console.log("111")
-    console.log(url)
-    onLoadPopularData(this.storeName, url)
+    if (loadMore) {
+      onLoadMorePopular(this.storeName, ++store.pageIndex, pageSize, store.items, callback => {
+        this.refs.toast.show("没有更多了")
+      })
+    } else {
+      onRefreshPopular(this.storeName, url, pageSize)
+    }
+  }
+  
+  /**
+   * 获取与当前页面有关的数据
+   * @returns {*}
+   * @private
+   */
+  _store() {
+    const {popular} = this.props
+    let store = popular[this.storeName]
+    if (!store) {
+      store = {
+        items: [],
+        isLoading: false,
+        projectModes: [],  //要显示的数据
+        hideLoadingMore: true //默认隐藏加载更多
+      }
+    }
+    return store
   }
   
   getFetchUrl(key) {
@@ -86,18 +123,19 @@ class PopularTab extends Component<Props> {
     />
   }
   
+  genIndicator() {
+    return this._store().hideLoadingMore ? null :
+      <View style={styles.indicatorContainer}>
+        <ActivityIndicator style={styles.indicator}/>
+        <Text>正在加载更多</Text>
+      </View>
+  }
+  
   render() {
-    const {popular} = this.props
-    let store = popular[this.storeName]
-    if (!store) {
-      store = {
-        items: [],
-        isLoading: false
-      }
-    }
+    let store = this._store()
     return (
       <View style={styles.container}>
-        <FlatList data={store.items}
+        <FlatList data={store.projectModes}
                   renderItem={data => this.renderItem(data)}
                   keyExtractor={item => "" + item.id}
                   refreshControl={
@@ -110,7 +148,21 @@ class PopularTab extends Component<Props> {
                       tintColor={THEME_COLOR}
                     />
                   }
+                  ListFooterComponent={() => this.genIndicator()}
+                  onEndReached={() => {
+                    setTimeout(() => {
+                      if (this.canLoadMore) {
+                        this.loadData(true)
+                        this.canloadMore = false
+                      }
+                    }, 100)
+                  }}
+                  onEndReachedThreshold={0.5}
+                  onMomentumScorllBegin={() => {//fix 初始化滚动调用 onEndReached 的问题
+                    this.canloadMore = true
+                  }}
         />
+        <Toast ref={'toast'} position={'center'}/>
       </View>
     )
   }
@@ -121,11 +173,9 @@ const mapStateToProps = state => ({
 })
 
 const mapDispatchToProps = dispatch => ({
-  onLoadPopularData: (storeName, url) => {
-    console.log("dsadfadfadfasdf")
-    console.log(dispatch)
-    return dispatch(actions.onLoadPopularData(storeName, url))
-  }
+  // 将 dispatch(onRefreshPopular(storeName,url)) 绑定到props
+  onRefreshPopular: (storeName, url, pageSize) => dispatch(actions.onRefreshPopular(storeName, url, pageSize)),
+  onLoadMorePopular: (storeName, pageIndex, pageSize, items, callback) => dispatch(actions.onLoadMorePopular(storeName, pageIndex, pageSize, items, callback))
 })
 
 
@@ -151,5 +201,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 6,
     marginBottom: 6
+  },
+  indicatorContainer: {
+    alignItems: "center"
+  },
+  indicator: {
+    color: "red",
+    margin: 10,
   }
 })
